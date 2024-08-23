@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18; 
+pragma solidity ^0.8.18;
 
 import {Script, console2} from "forge-std/Script.sol";
 //是一个模拟（mock）合约，专门用于测试依赖于Chainlink VRF（可验证随机函数）功能的智能合约
 import {VRFCoordinatorV2_5Mock} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {LinkToken} from '../test/mocks/LinkToken.sol';
+import {LinkToken} from "../test/mocks/LinkToken.sol";
 
 abstract contract CodeConstants {
     uint96 public MOCK_BASE_FEE = 0.25 ether;
@@ -12,16 +12,18 @@ abstract contract CodeConstants {
     // LINK / ETH price
     int256 public MOCK_WEI_PER_UINT_LINK = 4e15;
     //用于测试
-    address public FOUNDRY_DEFAULT_SENDER = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+    address public FOUNDRY_DEFAULT_SENDER =
+        0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
     //Sepolia 测试网
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     //ETH_MAINNET_CHAIN_ID
     uint256 public constant ETH_MAINNET_CHAIN_ID = 1;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 }
-contract HelperConfig is Script, CodeConstants{
+
+contract HelperConfig is Script, CodeConstants {
     error HelperConfig__InvalidChainId();
-    struct NetworkConfig{
+    struct NetworkConfig {
         uint256 entranceFee;
         uint256 interval;
         address vrfCoodinator;
@@ -29,28 +31,31 @@ contract HelperConfig is Script, CodeConstants{
         uint256 subscriptionId;
         uint32 callbackGasLimit;
         address link;
-        // uint256 deployerKey; 
+        // uint256 deployerKey;
         address account;
-
     }
     mapping(uint256 chainId => NetworkConfig) public networkConfigs;
     NetworkConfig public localNetworkConfig;
-    uint256 public constant DEFAULT_ANVIL_KEY=
-    0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    uint256 public constant DEFAULT_ANVIL_KEY =
+        0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
     //网络配置参数
     NetworkConfig public activeNetworkConfig;
-    constructor () {
-        if(block.chainid==11155111){
-            activeNetworkConfig=getSepoliaEthConfig();
-        } else{
-            activeNetworkConfig=getOrCreateAnvilEthConfig();
+
+    constructor() {
+        if (block.chainid == 11155111) {
+            activeNetworkConfig = getSepoliaEthConfig();
+        } else {
+            activeNetworkConfig = getOrCreateAnvilEthConfig();
         }
     }
 
     function getConfig() public returns (NetworkConfig memory) {
         return getConfigByChainId(block.chainid);
     }
-    function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
+
+    function getConfigByChainId(
+        uint256 chainId
+    ) public returns (NetworkConfig memory) {
         if (networkConfigs[chainId].vrfCoodinator != address(0)) {
             return networkConfigs[chainId];
         } else if (chainId == LOCAL_CHAIN_ID) {
@@ -59,24 +64,27 @@ contract HelperConfig is Script, CodeConstants{
             revert HelperConfig__InvalidChainId();
         }
     }
-    
-    function setConfig(uint256 chainId, NetworkConfig memory networkConfig) public {
+
+    function setConfig(
+        uint256 chainId,
+        NetworkConfig memory networkConfig
+    ) public {
         networkConfigs[chainId] = networkConfig;
     }
 
     //为什么这里用memory? 因为 NetworkConfig 只是临时创建并返回的
     //为什么不能是view 要用pure？ 使用 pure 是因为这个函数不涉及任何状态变量的读取或修改  两处设置都是为了减少gas费
-    function getSepoliaEthConfig() public view returns (NetworkConfig memory){
+    function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
         return
             NetworkConfig({
-                entranceFee:0.01 ether,
-                interval:30,
-                vrfCoodinator:0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
-                gasLane:0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
+                entranceFee: 0.01 ether,
+                interval: 30,
+                vrfCoodinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
+                gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
                 // subscriptionId:33466641475413953891448861904934993587289092474661034521531589866482416155925 ,//用自己订阅的id
-                subscriptionId:0 ,
-                callbackGasLimit:500000 ,//500,000 gas
-                link:0x779877A7B0D9E8603169DdbD7836e478b4624789,
+                subscriptionId: 0,
+                callbackGasLimit: 500000, //500,000 gas
+                link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
                 // deployerKey:vm.envUint("PRIVATE_KEY"), //? 加入这个为什么要改为view
                 account: 0x643315C9Be056cDEA171F4e7b2222a4ddaB9F88D
             });
@@ -91,8 +99,11 @@ contract HelperConfig is Script, CodeConstants{
         console2.log(unicode"⚠️ You have deployed a mock conract!");
         console2.log("Make sure this was intentional");
         vm.startBroadcast();
-        VRFCoordinatorV2_5Mock vrfCoordinatorV2_5Mock =
-            new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GAS_PRICE_LINK, MOCK_WEI_PER_UINT_LINK);
+        VRFCoordinatorV2_5Mock vrfCoordinatorV2_5Mock = new VRFCoordinatorV2_5Mock(
+                MOCK_BASE_FEE,
+                MOCK_GAS_PRICE_LINK,
+                MOCK_WEI_PER_UINT_LINK
+            );
         LinkToken link = new LinkToken();
         uint256 subscriptionId = vrfCoordinatorV2_5Mock.createSubscription();
         vm.stopBroadcast();
@@ -133,7 +144,7 @@ contract HelperConfig is Script, CodeConstants{
     //     LinkToken link=new LinkToken();
     //     // 停止广播
     //     vm.stopBroadcast();
-            
+
     //         localNetworkConfig=NetworkConfig({
     //             entranceFee:0.01 ether,
     //             interval:30,
@@ -143,8 +154,8 @@ contract HelperConfig is Script, CodeConstants{
     //             callbackGasLimit:500000, //500,000 gas
     //             link: address(link),
     //             deployerKey:DEFAULT_ANVIL_KEY,
-    //             account: FOUNDRY_DEFAULT_SENDER 
-    
+    //             account: FOUNDRY_DEFAULT_SENDER
+
     //         });
     //         vm.deal(localNetworkConfig.account, 100 ether);
     //     return localNetworkConfig;
