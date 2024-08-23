@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 //forge install transmissions11/solmate --no-commit
-import {ERC20} from "lib/solmate/src/tokens/ERC20.sol"; 
+import {ERC20} from "lib/solmate/src/tokens/ERC20.sol";
 
 interface ERC677Receiver {
     function onTokenTransfer(
