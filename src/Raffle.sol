@@ -69,6 +69,7 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
         i_callbackGasLimit = callbackGasLimit;
+        s_raffleState = RaffleState.OPEN;
     }
 
     //进入彩票
@@ -85,6 +86,31 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
 
         //测试 这是多余的吗
         emit EnteredRaffle(msg.sender);
+    }
+
+    //获胜者在什么时候被选出
+    /* @dev 是否需要选出获胜者，chainlink会调用这个函数，判断是否到了抽奖的时间，如果为true，则会选出获胜者
+     * @param  空
+     * @return upkeepNeeded 是否需要选出获胜者
+     * @return 附加数据
+     */
+
+    function checkUpkeep(
+        bytes memory /* checkData */
+    )
+        public
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory /* performData */)
+    {
+        //规定的时间间隔是否已经过去 (timeHasPassed)。合约是否处于开放状态 (isOpen)。合约是否有足够的资金 (hasBalance)。是否有玩家参与 (hasPlayers)。
+
+        bool isOpen = RaffleState.OPEN == s_raffleState;
+        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool hasPlayers = s_players.length > 0;
+        bool hasBalance = address(this).balance > 0;
+        upkeepNeeded = (timePassed && isOpen && hasBalance && hasPlayers);
+        return (upkeepNeeded, "0x0"); // can we comment this out?
     }
 
     //利用link自动化启动合约调用
@@ -119,31 +145,6 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
         );
         // Quiz... is this redundant?
         emit RequestedRaffleWinner(requestId);
-    }
-
-    //获胜者在什么时候被选出
-    /* @dev 是否需要选出获胜者，chainlink会调用这个函数，判断是否到了抽奖的时间，如果为true，则会选出获胜者
-     * @param  空
-     * @return upkeepNeeded 是否需要选出获胜者
-     * @return 附加数据
-     */
-
-    function checkUpkeep(
-        bytes memory /* checkData */
-    )
-        public
-        view
-        override
-        returns (bool upkeepNeeded, bytes memory /* performData */)
-    {
-        //规定的时间间隔是否已经过去 (timeHasPassed)。合约是否处于开放状态 (isOpen)。合约是否有足够的资金 (hasBalance)。是否有玩家参与 (hasPlayers)。
-
-        bool isOpen = RaffleState.OPEN == s_raffleState;
-        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
-        bool hasPlayers = s_players.length > 0;
-        bool hasBalance = address(this).balance > 0;
-        upkeepNeeded = (timePassed && isOpen && hasBalance && hasPlayers);
-        return (upkeepNeeded, "0x0"); // can we comment this out?
     }
 
     //CEI "Checks-Effects-Interactions"（检查-效果-交互）设计模式
@@ -210,5 +211,9 @@ contract Raffle is VRFConsumerBaseV2Plus, AutomationCompatibleInterface {
 
     function getLastTimeStamp() external view returns (uint256) {
         return s_lastTimeStamp;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
     }
 }
